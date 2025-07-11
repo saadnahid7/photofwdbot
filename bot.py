@@ -1,7 +1,7 @@
 import logging
 import os
 from telegram import Update
-from telegram.ext import Application, MessageHandler, filters, ContextTypes
+from telegram.ext import Updater, MessageHandler, Filters, CallbackContext
 
 # Enable logging
 logging.basicConfig(
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Your personal chat ID
 YOUR_CHAT_ID = os.getenv('YOUR_CHAT_ID', '7035950028')
 
-async def forward_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+def forward_photo(update: Update, context: CallbackContext) -> None:
     """PhotoFWD bot - Forward photos from groups to personal inbox"""
     try:
         # Check if message is from a group
@@ -33,7 +33,7 @@ async def forward_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                 caption += f"\n💬 Caption: {update.message.caption}"
             
             # Forward photo to your personal chat
-            await context.bot.send_photo(
+            context.bot.send_photo(
                 chat_id=YOUR_CHAT_ID,
                 photo=photo.file_id,
                 caption=caption
@@ -44,7 +44,7 @@ async def forward_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     except Exception as e:
         logger.error(f"PhotoFWD Error: {e}")
 
-async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+def error_handler(update: Update, context: CallbackContext) -> None:
     """Handle errors for PhotoFWD bot"""
     logger.warning(f'Update {update} caused error {context.error}')
 
@@ -58,20 +58,18 @@ def main() -> None:
     if not YOUR_CHAT_ID:
         raise ValueError("Please set YOUR_CHAT_ID environment variable")
     
-    # Create application with proper configuration
-    application = Application.builder().token(token).build()
+    # Create updater and dispatcher
+    updater = Updater(token=token, use_context=True)
+    dispatcher = updater.dispatcher
     
     # Add handlers
-    application.add_handler(MessageHandler(filters.PHOTO, forward_photo))
-    application.add_error_handler(error_handler)
+    dispatcher.add_handler(MessageHandler(Filters.photo, forward_photo))
+    dispatcher.add_error_handler(error_handler)
     
-    # Start the bot with proper polling configuration
+    # Start the bot
     logger.info("Starting PhotoFWD bot (@photofwdbot)...")
-    application.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        drop_pending_updates=True,
-        close_loop=False
-    )
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == '__main__':
     main()
