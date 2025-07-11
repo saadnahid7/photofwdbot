@@ -58,16 +58,20 @@ def main() -> None:
     if not YOUR_CHAT_ID:
         raise ValueError("Please set YOUR_CHAT_ID environment variable")
     
-    # Create application
+    # Create application with proper configuration
     application = Application.builder().token(token).build()
     
     # Add handlers
     application.add_handler(MessageHandler(filters.PHOTO, forward_photo))
     application.add_error_handler(error_handler)
     
-    # Start the bot
+    # Start the bot with proper polling configuration
     logger.info("Starting PhotoFWD bot (@photofwdbot)...")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
+        close_loop=False
+    )
 
 if __name__ == '__main__':
     main()
